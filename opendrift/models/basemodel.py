@@ -3533,7 +3533,7 @@ class OpenDriftSimulation(PhysicsMethods):
         # Density
         nc.createVariable('density_surface', 'u1',
                           ('time','y', 'x'))
-        H = np.swapaxes(H, 1, 2).astype('uint8')
+        H = np.swapaxes(H, 1, 2).astype('i4')
         H = np.ma.masked_where(H==0, H)
         nc.variables['density_surface'][:] = H
         nc.variables['density_surface'].long_name = 'Detection probability'
@@ -3542,7 +3542,7 @@ class OpenDriftSimulation(PhysicsMethods):
         # Density submerged
         nc.createVariable('density_submerged', 'u1',
                           ('time','y', 'x'))
-        H_sub = np.swapaxes(H_submerged, 1, 2).astype('uint8')
+        H_sub = np.swapaxes(H_submerged, 1, 2).astype('i4')
         H_sub = np.ma.masked_where(H_sub==0, H_sub)
         nc.variables['density_submerged'][:] = H_sub
         nc.variables['density_submerged'].long_name = 'Detection probability submerged'
@@ -3551,7 +3551,7 @@ class OpenDriftSimulation(PhysicsMethods):
         # Density stranded
         nc.createVariable('density_stranded', 'u1',
                           ('time','y', 'x'))
-        H_stranded = np.swapaxes(H_stranded, 1, 2).astype('uint8')
+        H_stranded = np.swapaxes(H_stranded, 1, 2).astype('i4')
         H_stranded = np.ma.masked_where(H_stranded==0, H_stranded)
         nc.variables['density_stranded'][:] = H_stranded
         nc.variables['density_stranded'].long_name = 'Detection probability stranded'

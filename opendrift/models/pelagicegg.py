@@ -58,6 +58,8 @@ class PelagicEggDrift(OpenDrift3DSimulation):
 
     required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
                           'sea_surface_wave_significant_height',
+                          'sea_surface_wave_stokes_drift_x_velocity',
+                          'sea_surface_wave_stokes_drift_y_velocity',
                           'sea_ice_area_fraction',
                           'x_wind', 'y_wind', 'land_binary_mask',
                           'sea_floor_depth_below_sea_level',
@@ -203,6 +205,7 @@ class PelagicEggDrift(OpenDrift3DSimulation):
 
         # Horizontal advection
         self.advect_ocean_current()
+        self.stokes_drift()
 
         # Vertical advection
         if self.get_config('processes:verticaladvection') is True:

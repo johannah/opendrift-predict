@@ -93,8 +93,9 @@ class PlastDrift(OceanDrift3D):
 
         # Simply move particles with ambient current
         self.advect_ocean_current()
-
-        self.update_particle_depth()
+ 
+        if self.get_config('processes:turbulentmixing') == True:
+            self.update_particle_depth()
 
         # Advect particles due to Stokes drift
         self.stokes_drift()
@@ -103,7 +104,6 @@ class PlastDrift(OceanDrift3D):
         self.advect_wind()
 
     def update_particle_depth(self):
-
 
         if self.get_config('turbulentmixing:mixingmodel') == 'randomwalk':
             logging.debug('Turbulent mixing of particles using random walk')
