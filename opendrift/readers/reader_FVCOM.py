@@ -25,12 +25,13 @@ import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
 from scipy.interpolate import LinearNDInterpolator
 
-from basereader import BaseReader, pyproj
+from opendrift.readers.basereader import BaseReader, pyproj
 
 
 class Reader(BaseReader):
 
-    def __init__(self, filename=None, name=None, gridfile=None):
+    def __init__(self, filename=None, name=None, gridfile=None,
+                 degree_resolution=0.003):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -71,6 +72,11 @@ class Reader(BaseReader):
         # We are reading and using lon/lat arrays,
         # and not any projected coordinates
         self.proj4 =  '+proj=latlong'
+        
+        # unstructered grid variables are internally interpolated to lon/lat
+        # grid with specified resolution
+        self.degree_resolution = degree_resolution
+        self.logger.debug('using internal grid resolution of ' +str(degree_resolution)+' degree')
 
         self.logger.debug('Finding coordinate variables.')
         # Find x, y and z coordinates
@@ -210,8 +216,8 @@ class Reader(BaseReader):
                      (self.lat > latmin) &
                      (self.lat < latmax))[0]
         # Making a lon-lat grid onto which data is interpolated
-        lonstep = .0004   # hardcoded for now
-        latstep = .0002   # hardcoded for now
+        lonstep = self.degree_resolution   # hardcoded for now
+        latstep = self.degree_resolution   # hardcoded for now
         lons = np.arange(lonmin, lonmax, lonstep)
         lats = np.arange(latmin, latmax, latstep)
         lonsm, latsm = np.meshgrid(lons, lats)
