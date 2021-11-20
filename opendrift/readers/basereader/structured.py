@@ -59,6 +59,7 @@ class StructuredReader(Variables):
             logger.info('Making interpolator for lon,lat to x,y conversion...')
             self.xmin = self.ymin = 0.
             self.delta_x = self.delta_y = 1.
+            # funny thing on these files
             self.xmax = self.lon.shape[1] - 1
             self.ymax = self.lon.shape[0] - 1
             self.numx = self.xmax
@@ -67,18 +68,24 @@ class StructuredReader(Variables):
             block_x, block_y = np.mgrid[self.xmin:self.xmax + 1,
                                         self.ymin:self.ymax + 1]
             block_x, block_y = block_x.T, block_y.T
+            print('finish mgrid')
 
             # Making interpolator (lon, lat) -> x
+            from time import time
+            st = time()
             self.spl_x = LinearNDInterpolator(
                 (self.lon.ravel(), self.lat.ravel()),
                 block_x.ravel(),
                 fill_value=np.nan)
+            print('finish interp')
             # Reusing x-interpolator (deepcopy) with data for y
             self.spl_y = copy.deepcopy(self.spl_x)
             self.spl_y.values[:, 0] = block_y.ravel()
             # Call interpolator to avoid threading-problem:
             # https://github.com/scipy/scipy/issues/8856
             self.spl_x((0, 0)), self.spl_y((0, 0))
+            print('finish', time()-st)
+            
         else:
             self.projected = True
 

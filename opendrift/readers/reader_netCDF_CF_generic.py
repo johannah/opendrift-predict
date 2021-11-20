@@ -252,7 +252,6 @@ class Reader(StructuredReader, BaseReader):
         if 'x' not in locals() or projected is False:  # No x/y-coordinates were detected
             if lon_var_name is None:
                 raise ValueError('No geospatial coordinates were detected, cannot geolocate dataset')
-            # We load lon and lat arrays into memory
             lon_var = self.Dataset.variables[lon_var_name]
             lat_var = self.Dataset.variables[lat_var_name]
             if lon_var.ndim == 1:
@@ -265,7 +264,17 @@ class Reader(StructuredReader, BaseReader):
                     self.proj4 = '+proj=latlong'
             elif lon_var.ndim == 2:
                 logger.debug('Lon and lat are 2D arrays - dataset is unprojected')
-                self.lon = lon_var.data
+                """
+                There is a quirk to the global NetCDF files 
+                namely that there are junk values of longitude (lon>500) in the rightmost column
+                of the longitude array (they are ignored by the model itself). So we have to work                 around them a little with NaN substitution.
+                """
+                lon_shape = lon_var.data.shape
+                lon_var = lon_var.data.ravel()
+                lon_var[lon_var > 500] = 434.12
+                lon_var = lon_var.reshape(lon_shape)
+                self.lon = lon_var
+
                 self.lat = lat_var.data
                 self.projected = False
             elif lon_var.ndim == 3:

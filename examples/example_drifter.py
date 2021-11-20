@@ -8,8 +8,8 @@ from datetime import timedelta
 import numpy as np
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
-
-o = OceanDrift(loglevel=20)  # Basic drift model suitable for passive tracers or drifters
+from IPython import embed
+o = OceanDrift(loglevel=0)  # Basic drift model suitable for passive tracers or drifters
 
 #%%
 # Preparing Readers
@@ -37,9 +37,10 @@ o.add_reader([reader_current, reader_wind])
 #
 # Giving each element a unique (random) wind_drift_factor
 wind_drift_factor = np.random.uniform(0, 0.06, 2000)
-o.seed_elements(4.7, 59.9, radius=3000, number=2000,
+o.seed_elements(4.7, 59.9, radius=3000, number=20,
                 time=reader_current.start_time,
                 wind_drift_factor=wind_drift_factor)
+embed()
 
 # Prevent mixing elements downwards
 o.set_config('drift:vertical_mixing', False)

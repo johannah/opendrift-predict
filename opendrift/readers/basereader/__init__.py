@@ -100,6 +100,7 @@ class BaseReader(Variables):
         self.is_lazy = False  # Generally False
 
         # Set projection for coordinate transformations
+        print('projecting')
         if self.proj is None:
             if self.proj4 is not None:
                 try:
@@ -120,6 +121,7 @@ class BaseReader(Variables):
                 raise Exception("No projection or CRS information available")
 
         # Check if there are holes in time domain
+        print('checking time')
         if self.start_time is not None and self.time_step is not None:# and len(self.times) > 1:
             self.expected_time_steps = (
                 self.end_time - self.start_time).total_seconds() / (
@@ -148,6 +150,7 @@ class BaseReader(Variables):
 
         self.set_buffer_size(max_speed = 5.)
 
+        print('east/north')
         # Check if there are east/north-oriented vectors
         for var in self.variables:
             for xvar, eastnorthvar in self.xy2eastnorth_mapping.items():

@@ -3492,6 +3492,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 kwargs['compare_latmin'] = np.minimum(kwargs['compare_latmin'], tlatmin)
                 kwargs['compare_latmax'] = np.maximum(kwargs['compare_latmax'], tlatmax)
 
+        print(kwargs)
         fig, ax, crs, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer, corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
 

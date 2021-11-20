@@ -11,6 +11,10 @@ import cmocean
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.physics_methods import wind_drift_factor_from_trajectory, distance_between_trajectories
 
+input_wind_drift_factor = 0.033
+time_duration_hours = 12
+time_step_minutes = 30
+
 #%%
 # A very simple drift model is: current + wind_drift_factor*wind
 # where wind_drift_factor for surface drift is typically
@@ -28,12 +32,12 @@ ot.add_readers_from_list([ot.test_data_folder() +
 #%%
 # Using a wind_drift_factor of 0.33 i.e. drift is current + 3.3% of wind speed
 ot.seed_elements(lon=4, lat=60, number=1, time=ot.readers[list(ot.readers)[0]].start_time,
-        wind_drift_factor=0.033)
+        wind_drift_factor=input_wind_drift_factor)
 
 #%%
 # Adding some horizontal diffusivity as "noise"
 ot.set_config('drift:horizontal_diffusivity', 10)
-ot.run(duration=timedelta(hours=12), time_step=600)
+ot.run(duration=timedelta(hours=time_duration_hours), time_step=time_step_minutes)
 
 #%%
 # Secondly, calculating the wind_drift_factor which reproduces the "observed" trajectory with minimal difference
@@ -51,11 +55,11 @@ t = o.get_variables_along_trajectory(variables=['x_sea_water_velocity', 'y_sea_w
 wind_drift_factor, azimuth = wind_drift_factor_from_trajectory(t)
 
 o.seed_elements(lon=4, lat=60, number=1, time=ot.readers[list(ot.readers)[0]].start_time,
-                wind_drift_factor=0.033)
+                wind_drift_factor=input_wind_drift_factor)
 
 #%% 
 # New simulation, this time without diffusivity/noise
-o.run(duration=timedelta(hours=12), time_step=600)
+o.run(duration=timedelta(hours=time_duration_hours), time_step=time_step_minutes)
 
 #%%
 # Calculate distances (meters) between simulation and synthetic drifter at each time step
@@ -75,7 +79,7 @@ o.plot(fast=True, legend=True, trajectory_dict={'lon': drifter_lons, 'lat': drif
 print(wind_drift_factor.mean())
 
 plt.hist(wind_drift_factor, label='Retrieved wind_drift_factor')
-plt.axvline(x=0.033, label='Actual wind_drift_factor of 0.033', color='k')
+plt.axvline(x=input_wind_drift_factor, label='Actual wind_drift_factor of %s'%input_wind_drift_factor, color='k')
 plt.axvline(x=wind_drift_factor.mean(), label='Mean retieved wind_drift_factor of %.3f' % wind_drift_factor.mean(), color='r')
 plt.ylabel('Number')
 plt.xlabel('Wind drift factor  [fraction]')
