@@ -1027,7 +1027,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     logger.warning('Reader is lazy, should not happen')
                     import sys; sys.exit('Should not happen')
                 if not reader.covers_time(time):
-                    logger.debug('\tOutside time coverage of reader.')
+                    logger.debug('\tOutside time coverage of reader. %s %s request:%s reader end:%s '%(variable_group, time, reader.name, reader.end_time))
                     if reader_name == reader_group[-1]:
                         if self._initialise_next_lazy_reader() is not None:
                             logger.debug('Missing variables: calling get_environment recursively')
@@ -3671,21 +3671,25 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y = \
                     self.get_map_background(ax, background, time=time)
                                         #self.time_step_output)
+                if scalar == None: 
+                    # background failed
+                    background = None
 
-            if show_scalar is True:
-                if contourlines is False:
-                    scalar = np.ma.masked_invalid(scalar)
-                    mappable = ax.pcolormesh(map_x, map_y, scalar, alpha=bgalpha,
-                                   vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
-                else:
-                    if contourlines is True:
-                        CS = ax.contour(map_x, map_y, scalar,
-                                         colors='gray', transform = gcrs)
+            if background is not None:
+                if show_scalar is True:
+                    if contourlines is False:
+                        scalar = np.ma.masked_invalid(scalar)
+                        mappable = ax.pcolormesh(map_x, map_y, scalar, alpha=bgalpha,
+                                       vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
                     else:
-                        # contourlines is an array of values
-                        CS = ax.contour(map_x, map_y, scalar, contourlines,
-                                         colors='gray', transform = gcrs)
-                    plt.clabel(CS, fmt='%g')
+                        if contourlines is True:
+                            CS = ax.contour(map_x, map_y, scalar,
+                                             colors='gray', transform = gcrs)
+                        else:
+                            # contourlines is an array of values
+                            CS = ax.contour(map_x, map_y, scalar, contourlines,
+                                             colors='gray', transform = gcrs)
+                        plt.clabel(CS, fmt='%g')
 
         if mappable is not None and colorbar is True:
             cb = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.8, drawedges=False)
@@ -3788,6 +3792,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             variable = background[0]  # A vector is requested
         else:
             variable = background  # A scalar is requested
+        # what happens if none of these are true?
         for readerName in self.readers:
             reader = self.readers[readerName]
             if variable in reader.variables:
@@ -3795,6 +3800,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     time>= reader.start_time and time <= reader.end_time) or (
                         reader.always_valid is True):
                     break
+                # we dont' always have end time
+                if reader.end_time is None:
+                    if time>= reader.start_time and time <= (reader.start_time + reader.time_delta):
+                        break
         if time is None:
             if hasattr(self, 'elements_scheduled_time'):
                 # Using time of first seeded element
@@ -3814,8 +3823,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             reader_x = np.linspace(reader_x.min(), reader_x.max(), 10)
             reader_y = np.linspace(reader_y.min(), reader_y.max(), 10)
 
-        data = reader.get_variables(
-            background, time, reader_x, reader_y, None)
+        try:
+            data = reader.get_variables(
+                background, time, reader_x, reader_y, None)
+        except Exception as e:
+            logger.warning('Cannot plot background time: %s:'%time)
+            return None, None, None, None, None, None, None
         reader_x, reader_y = np.meshgrid(data['x'], data['y'])
         if type(background) is list:  # Ensemble reader, using first member
             u_component = data[background[0]]

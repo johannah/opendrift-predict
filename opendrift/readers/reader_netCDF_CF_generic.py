@@ -114,7 +114,7 @@ class Reader(StructuredReader, BaseReader):
 
     """
 
-    def __init__(self, filename=None, name=None, proj4=None, standard_name_mapping={}):
+    def __init__(self, filename=None, name=None, proj4=None, standard_name_mapping={}, time_step=None):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -228,6 +228,9 @@ class Reader(StructuredReader, BaseReader):
                 self.end_time = self.times[-1]
                 if len(self.times) > 1:
                     self.time_step = self.times[1] - self.times[0]
+                elif time_step is not None:
+                    # JRH hack
+                    self.time_step = time_step
                 else:
                     self.time_step = None
             if standard_name == 'realization':
