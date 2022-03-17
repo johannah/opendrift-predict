@@ -225,12 +225,13 @@ class Reader(StructuredReader, BaseReader):
                         calendar = 'standard'
                     self.times = num2date(time, time_units, calendar=calendar)
                 self.start_time = self.times[0]
-                self.end_time = self.times[-1]
+                self.end_time = self.times[-1] 
                 if len(self.times) > 1:
                     self.time_step = self.times[1] - self.times[0]
                 elif time_step is not None:
                     # JRH hack
                     self.time_step = time_step
+                    self.faux_end_time = self.start_time + time_step
                 else:
                     self.time_step = None
             if standard_name == 'realization':
@@ -349,6 +350,8 @@ class Reader(StructuredReader, BaseReader):
 
         # Run constructor of parent Reader class
         super().__init__()
+        if time_step != None:
+            self.faux_end_time = self.start_time + time_step
 
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None,

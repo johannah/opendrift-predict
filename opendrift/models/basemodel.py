@@ -952,6 +952,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                          interpolated to requested positions/time.
 
         '''
+        readers_used = []
+        BIGGUN = False
         self.timer_start('main loop:readers')
         # Initialise ndarray to hold environment variables
         dtype = [(var, np.float32) for var in variables]
@@ -989,6 +991,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 reader = 'NotNone'
                 while reader is not None:
                     reader = self._initialise_next_lazy_reader()
+                    reader_used.append(reader)
                     if reader is not None:
                         if self.discard_reader_if_not_relevant(reader):
                             reader = None
@@ -1034,6 +1037,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                             return self.get_environment(variables,
                                         time, lon, lat, z, profiles)
                     continue
+                else:
+                    logger.debug('\tYAY covers time reader. %s %s request:%s reader end:%s '%(variable_group, time, reader.name, reader.end_time))
+                    
+
+                if variable_group == ['x_sea_water_velocity', 'y_sea_water_velocity']:
+                    if self.time >= datetime(2021, 11, 25, 0, 0):
+                        BIGGUN= True
                 # Fetch given variables at given positions from current reader
                 try:
                     logger.debug('Data needed for %i elements' %
@@ -1046,12 +1056,29 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                             profiles_from_reader = None
                     else:
                         profiles_from_reader = None
+                    
                     env_tmp, env_profiles_tmp = \
                         reader.get_variables_interpolated(
                             variable_group, profiles_from_reader,
                             self.required_profiles_z_range, time,
                             lon[missing_indices], lat[missing_indices],
                             z[missing_indices], self.proj_latlon)
+                    if variable_group ==  ['x_sea_water_velocity', 'y_sea_water_velocity']:
+                        logger.debug('WORKING SEA WATER')
+                        last_env_x = env_tmp
+                        last_env_prof_x = env_profiles_tmp
+                        if np.isnan(env_tmp['x_sea_water_velocity']).sum():
+                            print('using last reader', self.last_reader)
+                            logger.debug('using last reader')
+                            env_tmp, env_profiles_tmp = \
+                                       self.last_reader.get_variables_interpolated(
+                                       variable_group, profiles_from_reader,
+                                       self.required_profiles_z_range, self.last_reader.start_time,
+                                       lon[missing_indices], lat[missing_indices],
+                                       z[missing_indices], self.proj_latlon)
+ 
+                        else:
+                            self.last_reader = reader
 
                 except Exception as e:
                     logger.info('========================')
@@ -1075,6 +1102,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                         continue
                     if var not in env.dtype.names:
                         continue  # Skipping variables that are only used to derive needed variables
+                       
                     env[var][missing_indices] = np.ma.masked_invalid(
                         env_tmp[var][0:len(missing_indices)]).astype('float32')
                     if profiles_from_reader is not None and var in profiles_from_reader:
@@ -1224,29 +1252,30 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         # Current
         if 'x_sea_water_velocity' in variables and \
                 'y_sea_water_velocity' in variables:
+
             std = self.get_config('drift:current_uncertainty')
             if std > 0:
                 logger.debug('Adding uncertainty for current: %s m/s' % std)
-                env['x_sea_water_velocity'] += np.random.normal(
-                    0, std, self.num_elements_active())
-                env['y_sea_water_velocity'] += np.random.normal(
-                    0, std, self.num_elements_active())
+                env['x_sea_water_velocity'] = env['x_sea_water_velocity'] + np.random.normal(
+                    0, std, env['x_sea_water_velocity'].shape)
+                env['y_sea_water_velocity'] = env['y_sea_water_velocity'] + np.random.normal(
+                    0, std, env['y_sea_water_velocity'].shape)
             std = self.get_config('drift:current_uncertainty_uniform')
             if std > 0:
                 logger.debug('Adding uncertainty for current: %s m/s' % std)
-                env['x_sea_water_velocity'] += np.random.uniform(
-                    -std, std, self.num_elements_active())
-                env['y_sea_water_velocity'] += np.random.uniform(
-                    -std, std, self.num_elements_active())
+                env['x_sea_water_velocity'] = env['x_sea_water_velocity'] + np.random.uniform(
+                    -std, std, env['x_sea_water_velocity'].shape)
+                env['y_sea_water_velocity'] = env['y_sea_water_velocity'] + np.random.uniform(
+                    -std, std, env['y_sea_water_velocity'].shape)
         # Wind
         if 'x_wind' in variables and 'y_wind' in variables:
             std = self.get_config('drift:wind_uncertainty')
             if std > 0:
                 logger.debug('Adding uncertainty for wind: %s m/s' % std)
                 env['x_wind'] += np.random.normal(
-                    0, std, self.num_elements_active())
+                    0, std, env['x_wind'].shape)
                 env['y_wind'] += np.random.normal(
-                    0, std, self.num_elements_active())
+                    0, std, env['x_wind'].shape)
 
         #####################
         # Diagnostic output
@@ -1296,9 +1325,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             for var in env_profiles:
                 env_profiles[var] = np.array(env_profiles[var])
 
+        #if missing.sum():
+        #    from IPython import embed; embed()
         self.timer_end('main loop:readers:postprocessing')
         self.timer_end('main loop:readers')
-
         return env.view(np.recarray), env_profiles, missing
 
     def get_variables_along_trajectory(self, variables, lons, lats, times):
@@ -2492,6 +2522,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 self.calculate_missing_environment_variables()
 
                 if any(missing):
+                    from IPython import embed; embed()
                     self.report_missing_variables()
 
                 self.interact_with_coastline()

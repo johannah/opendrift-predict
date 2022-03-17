@@ -374,6 +374,10 @@ class ReaderDomain(Timeable):
             return True
         if self.start_time is None:
             return True  # No time limitations of reader
+        
+        if self.faux_end_time is not None:
+            if (time > self.start_time) and (time <= self.faux_end_time): 
+                return True
         if (time < self.start_time) or (time > self.end_time):
             return False
         else:
@@ -458,6 +462,7 @@ class Variables(ReaderDomain):
     buffer = 0
 
     def __init__(self):
+        self.faux_end_time = None
         if self.derived_variables is None:
             self.derived_variables = {}
         if self.variables is None:

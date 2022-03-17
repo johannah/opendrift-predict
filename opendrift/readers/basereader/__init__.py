@@ -339,6 +339,8 @@ class BaseReader(Variables):
             rx = np.float32(rx)
             ry = np.float32(ry)
             rlon, rlat = self.xy2lonlat(rx, ry)
+            if np.sum(np.isnan(rx)):
+                from IPython import embed; embed()
             data[variable] = np.ma.masked_invalid(data[variable])
 
             if data[variable].ndim > 2:
